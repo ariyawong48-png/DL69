@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perceptron Dashboard - สัปดาห์ที่ 9</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <div class="max-w-4xl mx-auto px-6 py-10" x-data="dashboard()">
+
+    <!-- ★★★ Landing page: รหัสนักศึกษาและชื่อ-นามสกุล ★★★ -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border-l-4 border-emerald-500">
+      <h1 class="text-3xl font-bold text-gray-800">Perceptron Dashboard</h1>
+      <p class="text-gray-500 mt-1">การบ้านสัปดาห์ที่ 9 — การเรียนรู้เชิงลึก</p>
+      <div class="mt-4 flex flex-wrap gap-6">
+        <p class="text-lg">
+          <span class="text-gray-500">รหัสนักศึกษา:</span>
+          <span class="font-mono font-bold text-emerald-600 text-xl">{{ student_id }}</span>
+        </p>
+        <p class="text-lg">
+          <span class="text-gray-500">ชื่อ-นามสกุล:</span>
+          <span class="font-bold text-emerald-600 text-xl">{{ student_name }}</span>
+        </p>
+      </div>
+    </div>
+    <!-- ★★★ เปลี่ยนรหัสนักศึกษา/ชื่อได้ใน dashboard/views.py (ตัวแปร context) ★★★ -->
+
+    <!-- ปุ่มเริ่มฝึกสอน -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <button @click="startTraining()" :disabled="training"
+              class="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl text-xl transition">
+        <span x-show="!training">เริ่มฝึกสอน (Start Training)</span>
+        <span x-show="training">กำลังฝึกสอน...</span>
+      </button>
+    </div>
+
+    <!-- สถานะการฝึกสอน -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">สถานะการฝึกสอน</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="text-sm text-gray-500">Epoch</div>
+          <div class="text-2xl font-mono font-bold text-blue-600" x-text="epoch"></div>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="text-sm text-gray-500">Loss</div>
+          <div class="text-2xl font-mono font-bold text-red-600" x-text="loss"></div>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-4">
+          <div class="text-sm text-gray-500">Accuracy</div>
+          <div class="text-2xl font-mono font-bold text-green-600" x-text="acc"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ผลลัพธ์ -->
+    <div class="bg-white rounded-2xl shadow-lg p-6">
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">ผลลัพธ์</h2>
+      <div x-show="!done && !training" class="text-gray-400 text-center py-6">ยังไม่มีผลลัพธ์ — กดปุ่มเริ่มฝึกสอนก่อน</div>
+      <div x-show="done">
+        <p class="text-green-600 font-semibold mb-4">การฝึกสอนเสร็จสิ้น!</p>
+        <!-- รูปผลลัพธ์ (loss curve) แสดงที่นี่เมื่อนักศึกษา implement แล้ว -->
+        <img x-show="resultUrl" :src="'/' + resultUrl + '?v=' + Date.now()" class="rounded-xl border border-gray-200 mb-6 w-full shadow-sm" alt="Loss curve">
+
+        <!-- ตารางสรุปการเปรียบเทียบ 3 Learning Rates -->
+        <div class="overflow-x-auto mb-6">
+          <table class="w-full text-sm text-left text-gray-700 border border-gray-200 rounded-lg shadow-sm">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+              <tr>
+                <th class="px-4 py-3 border-b">Learning Rate (lr)</th>
+                <th class="px-4 py-3 border-b">ลักษณะการลดลงของ Loss</th>
+                <th class="px-4 py-3 border-b">สรุปผลการฝึกสอน (Convergence)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="bg-white border-b">
+                <td class="px-4 py-3 font-semibold text-blue-600">0.001</td>
+                <td class="px-4 py-3">Loss แทบไม่ลดลง (คงที่อยู่ประมาณ 0.70)</td>
+                <td class="px-4 py-3 font-medium text-yellow-600">เรียนรู้ช้าเกินไป (Too Slow)</td>
+              </tr>
+              <tr class="bg-gray-50 border-b">
+                <td class="px-4 py-3 font-semibold text-orange-500">0.1</td>
+                <td class="px-4 py-3">Loss ค่อยๆ ลดลงอย่างสม่ำเสมอถึง ~0.28</td>
+                <td class="px-4 py-3 font-medium text-green-600">พอดี สมดุลและเสถียร (Optimal)</td>
+              </tr>
+              <tr class="bg-white">
+                <td class="px-4 py-3 font-semibold text-green-600">1.0</td>
+                <td class="px-4 py-3">Loss ดิ่งลดลงเร็วที่สุด ลงไปต่ำกว่า 0.20</td>
+                <td class="px-4 py-3 font-medium text-blue-600">ลู่เข้าสู่จุดต่ำสุดไวที่สุด (Fastest)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <canvas id="chart" class="mt-4 w-full" height="200" x-show="training || done"></canvas>
+    </div>
+
+  </div>
+
+  <script>
+    function dashboard() {
+      return {
+        training: false,
+        done: false,
+        epoch: 0,
+        loss: 0,
+        acc: 0,
+        resultUrl: '',
+        es: null,
+        losses: [],
+        chart: null,
+
+        init() {
+          this.chart = document.getElementById('chart').getContext('2d');
+        },
+
+        startTraining() {
+          this.training = true;
+          this.done = false;
+          this.losses = [];
+          this.es = new EventSource('/train/');
+          this.es.onmessage = (e) => {
+            const m = JSON.parse(e.data);
+            if (m.type === 'progress') {
+              this.epoch = m.epoch;
+              this.loss = m.loss.toFixed(4);
+              this.acc = (m.accuracy * 100).toFixed(1) + '%';
+              this.losses.push({ epoch: m.epoch, loss: m.loss });
+              this.drawChart();
+            } else if (m.type === 'done') {
+              this.training = false;
+              this.done = true;
+              this.resultUrl = m.results;
+              this.es.close();
+            }
+          };
+          this.es.onerror = () => {
+            this.training = false;
+            this.es.close();
+          };
+        },
+
+        drawChart() {
+          // วาดกราฟ loss curve ง่าย ๆ บน Canvas
+          const ctx = this.chart;
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          ctx.fillStyle = '#f3f4f6';
+          ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+          const maxEpoch = Math.max(...this.losses.map(l => l.epoch), 1);
+          const maxLoss = Math.max(...this.losses.map(l => l.loss), 0.01);
+
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          this.losses.forEach((l, i) => {
+            const x = (l.epoch / maxEpoch) * ctx.canvas.width;
+            const y = ctx.canvas.height - (l.loss / maxLoss) * (ctx.canvas.height - 20) - 10;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+        }
+      };
+    }
+  </script>
+</body>
+</html>
