@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WK11 Train Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Train Model (RNN / LSTM)</h2>
+    <label>เลือก Model:</label>
+    <select id="modelSelect">
+        <option value="rnn">RNN</option>
+        <option value="lstm">LSTM</option>
+    </select>
+    <button onclick="startTraining()">Start Training</button>
+
+    <div style="width: 600px; margin-top: 20px;">
+        <canvas id="lossChart"></canvas>
+    </div>
+
+    <script>
+        let chart;
+        function startTraining() {
+            const model = document.getElementById('modelSelect').value;
+            const ctx = document.getElementById('lossChart').getContext('2d');
+            
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Loss (' + model.toUpperCase() + ')', data: [], borderColor: 'green' }] }
+            });
+
+            const evtSource = new EventSource(`/dashboard/wk11/train/stream/?model=${model}`);
+            evtSource.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                if (data.status === 'complete') {
+                    evtSource.close();
+                    alert('Training Complete & Model Saved!');
+                } else {
+                    chart.data.labels.push(data.epoch);
+                    chart.data.datasets[0].data.push(data.loss);
+                    chart.update();
+                }
+            };
+        }
+    </script>
+</body>
+</html>

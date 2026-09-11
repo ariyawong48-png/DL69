@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WK11 Load Model & Evaluation</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h2>Load Trained Model & Evaluation</h2>
+
+    <div style="margin-bottom: 15px;">
+        <label for="modelSelect">เลือก Model ที่ต้องการโหลด: </label>
+        <select id="modelSelect" onchange="changeModel(this.value)">
+            <option value="lstm" {% if selected_model == 'lstm' %}selected{% endif %}>LSTM</option>
+            <option value="rnn" {% if selected_model == 'rnn' %}selected{% endif %}>RNN</option>
+        </select>
+    </div>
+
+    <p>สถานะระบบ: <strong>{{ status }}</strong></p>
+    <p>ค่าความคลาดเคลื่อนเฉลี่ย (MAE): <strong>{{ mae }}</strong></p>
+
+    <div style="width: 700px; margin-top: 20px;">
+        <canvas id="evalChart"></canvas>
+    </div>
+
+    <script>
+        function changeModel(model) {
+            window.location.href = `/dashboard/wk11/load/?model=${model}`;
+        }
+
+        const actualData = {{ actual_data|safe }};
+        const predData = {{ pred_data|safe }};
+        const labels = {{ labels|safe }};
+
+        if (actualData && actualData.length > 0) {
+            const ctx = document.getElementById('evalChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Actual Temperature (°C)',
+                            data: actualData,
+                            borderColor: 'blue',
+                            fill: false
+                        },
+                        {
+                            label: 'Predicted Temperature (°C)',
+                            data: predData,
+                            borderColor: 'red',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Actual vs Prediction (Jena Climate)'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
